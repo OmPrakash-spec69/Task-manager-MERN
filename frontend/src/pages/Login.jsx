@@ -1,0 +1,88 @@
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
+import { useAuth } from '../context/AuthContext';
+import { validateLoginForm, getApiErrorMessage } from '../utils/validators';
+
+const Login = () => {
+  const { login } = useAuth();
+  const navigate = useNavigate();
+  const [form, setForm] = useState({ email: '', password: '' });
+  const [errors, setErrors] = useState({});
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleChange = (field, value) => {
+    setForm((prev) => ({ ...prev, [field]: value }));
+    if (errors[field]) setErrors((prev) => ({ ...prev, [field]: undefined }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const validationErrors = validateLoginForm(form);
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const user = await login(form);
+      toast.success(`Welcome back, ${user.name.split(' ')[0]}!`);
+      navigate('/');
+    } catch (error) {
+      toast.error(getApiErrorMessage(error));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="auth-page">
+      <div className="panel auth-panel">
+        <div className="auth-header">
+          <h1>Welcome back</h1>
+          <p>Sign in to manage your tasks</p>
+        </div>
+
+        <form onSubmit={handleSubmit} noValidate>
+          <div className="field">
+            <label htmlFor="email">Email</label>
+            <input
+              id="email"
+              type="email"
+              placeholder="you@example.com"
+              value={form.email}
+              onChange={(e) => handleChange('email', e.target.value)}
+              className={errors.email ? 'has-error' : ''}
+              autoFocus
+            />
+            {errors.email && <p className="field-error">{errors.email}</p>}
+          </div>
+
+          <div className="field">
+            <label htmlFor="password">Password</label>
+            <input
+              id="password"
+              type="password"
+              placeholder="••••••••"
+              value={form.password}
+              onChange={(e) => handleChange('password', e.target.value)}
+              className={errors.password ? 'has-error' : ''}
+            />
+            {errors.password && <p className="field-error">{errors.password}</p>}
+          </div>
+
+          <button type="submit" className="btn btn-block" disabled={submitting}>
+            {submitting ? <span className="spinner" /> : 'Sign In'}
+          </button>
+        </form>
+
+        <p className="auth-footer">
+          Don&apos;t have an account? <Link to="/register">Create one</Link>
+        </p>
+      </div>
+    </div>
+  );
+};
+
+export default Login;
